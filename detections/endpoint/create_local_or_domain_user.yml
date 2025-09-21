@@ -1,0 +1,61 @@
+name: create_local_or_domain_user
+id: bf2e16e2-cbdd-46ca-8f7b-7fa438777ff1
+version: 1
+date: '2025-09-21'
+author: Treasure Muriithi
+status: production
+type: TTP
+description: Detects creation of a new local or domain user account using Windows Security event 4720
+data_source:
+  - Windows Security Event Log
+search: |
+  index=win source="XmlWinEventLog:Security" (EventID=4720 OR EventCode=4720)
+  | eval host=coalesce(Computer, host)
+  | eval actor=coalesce(SubjectUserName, user)
+  | eval target_user=coalesce(TargetUserName, New_Account_Name, Account_Name)
+  | eval target_domain=coalesce(TargetDomainName, Target_Domain)
+  | table _time host actor target_user target_domain
+  | sort -_time
+  | `create_local_or_domain_user_filter`
+how_to_implement: placeholder
+known_false_positives: Domain-joined system account creation by authorized administrators or identity provisioning systems.
+references:
+  - https://attack.mitre.org/techniques/T1136/
+  - https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4720
+drilldown_searches:
+  - name: View events for a specific created user
+    search: '%original_detection_search% target_user="$target_user$"
+      | table _time host actor target_user target_domain EventID'
+    earliest_offset: $info_min_time$
+    latest_offset: $info_max_time$
+  - name: View activity by the actor (creator)
+    search: '%original_detection_search% (SubjectUserName="$actor$" OR actor="$actor$")
+      | table _time host EventID Message'
+    earliest_offset: $info_min_time$
+    latest_offset: $info_max_time$
+rba:
+  message: New account created for $$target_user$$
+  risk_objects:
+    - field: target_user
+      type: user
+      score: 35
+  threat_objects:
+    - field: host
+      type: system
+tags:
+  analytic_story:
+    - Account Management
+  asset_type: Account
+  mitre_attack_id:
+    - T1136.001
+  product:
+    - Splunk Enterprise
+    - Splunk Enterprise Security
+    - Splunk Cloud
+  security_domain: access
+tests:
+  - name: True Positive Test
+    attack_data:
+      - data: attack_data/T1136.001/windows-xml.log  
+        sourcetype: XmlWinEventLog:Security
+        source: XmlWinEventLog:Security

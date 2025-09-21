@@ -1,0 +1,74 @@
+name: Windows Security Event Log
+id: 8a4d3b6c-7d3f-4f2e-9c2b-1a2f3b4c5d6e
+version: 1
+date: '2025-09-21'
+author: Treasure Muriithi
+status: production
+description: Data source object for Windows Security event logs (Security channel). Used for account lifecycle events such as 4720 (User Account Created), 4722 (User Enabled), 4723/4724 (Password change), 4725/4726 (User Account Disabled/Deleted), and related audit events.
+source: XmlWinEventLog:Security
+sourcetype: XmlWinEventLog:Security
+separator: EventID
+supported_TA:
+  - name: Splunk Add-on for Microsoft Windows
+    url: https://splunkbase.splunk.com/app/1864/
+    version: 8.0.0
+fields:
+  - _time
+  - EventID
+  - EventCode
+  - EventRecordID
+  - Computer
+  - Channel
+  - ProviderName
+  - Message
+  - SubjectUserSid
+  - SubjectUserName
+  - SubjectDomainName
+  - SubjectLogonId
+  - TargetUserSid
+  - TargetUserName
+  - TargetDomainName
+  - TargetLogonId
+  - host
+  - sourcetype
+  - source
+  - index
+field_mappings:
+  - data_model: cim
+    data_set: Authentication
+    mapping:
+      SubjectUserName: Authentication.user
+      SubjectDomainName: Authentication.user_domain
+      EventID: Authentication.event_id
+      Computer: Authentication.dest
+      TargetUserName: Authentication.target_user
+  - data_model: cim
+    data_set: Endpoint.User
+    mapping:
+      TargetUserName: User.user
+      TargetDomainName: User.user_domain
+      Computer: User.host
+convert_to_log_source:
+  - data_source: Windows Security Event Log 4720 (User Created)
+    mapping:
+      EventID: EventID
+      Computer: Computer
+      SubjectUserName: SubjectUserName
+      TargetUserName: TargetUserName
+      TargetDomainName: TargetDomainName
+example_log: >
+  <Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'>
+    <System>
+      <Provider Name='Microsoft-Windows-Security-Auditing' />
+      <EventID>4720</EventID>
+      <TimeCreated SystemTime='2025-09-21T12:34:56.000Z'/>
+      <Computer>WIN-SERVER-01.corp.local</Computer>
+      <EventRecordID>123456</EventRecordID>
+    </System>
+    <EventData>
+      <Data Name='SubjectUserName'>Administrator</Data>
+      <Data Name='SubjectDomainName'>CORP</Data>
+      <Data Name='TargetUserName'>newuser</Data>
+      <Data Name='TargetDomainName'>CORP</Data>
+    </EventData>
+  </Event>

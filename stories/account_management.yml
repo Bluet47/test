@@ -1,0 +1,21 @@
+name: Account Management
+id: 2f0f4e84-9f6a-4b2a-ae7d-58a64b55c321
+version: 1
+date: '2025-09-21'
+author: Treasure Muriithi
+status: production
+description: The Account Management analytic story helps security teams detect suspicious creation, modification, and deletion of local or domain accounts. Attackers often create or manipulate accounts to establish persistence or elevate privileges.
+narrative: Adversaries frequently abuse legitimate account management functions after initial access to maintain persistence or escalate privileges. Monitoring account creation, group membership changes, and account deletion events can uncover attempts to expand access in an environment.
+references:
+  - https://attack.mitre.org/techniques/T1136/
+  - https://attack.mitre.org/techniques/T1098/
+  - https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4720
+tags:
+  category:
+    - Privilege Escalation
+    - Account Compromise
+  usecase: Security Monitoring  
+  product:
+    - Splunk Enterprise
+    - Splunk Enterprise Security
+    - Splunk Cloud
