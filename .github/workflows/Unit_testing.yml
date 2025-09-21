@@ -12,7 +12,7 @@ on:
       - 'detections/**'
       - 'tests/**'
       - '.github/workflows/**'
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   unit:
@@ -24,23 +24,30 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install deps (force pytest present)
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
+          # install from requirements if present (don't fail if the file is missing)
           if [ -f requirements.txt ]; then
             python -m pip install -r requirements.txt
-          else
-            # minimal deps if requirements.txt is missing
-            python -m pip install PyYAML pytest splunk-sdk requests
           fi
+          # ensure core tools are installed no matter what
+          python -m pip install --upgrade pytest PyYAML splunk-sdk requests
+          # prove they’re importable
+          python - <<'PY'
+          import sys
+          print("Python:", sys.version)
+          import pytest, yaml, splunklib, requests
+          print("Imports OK:", pytest.__version__, yaml.__version__)
+          PY
           python -m pip list
 
       - name: Run unit tests
-        run: |
-          python -m pytest -q tests/unit
+        run: python -m pytest -q tests/unit
 
   parser:
     needs: unit
+    if: ${{ secrets.SPLUNK_HOST != '' && secrets.SPLUNK_USERNAME != '' && secrets.SPLUNK_PASSWORD != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,15 +56,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install deps (same as unit job)
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           if [ -f requirements.txt ]; then
             python -m pip install -r requirements.txt
-          else
-            python -m pip install PyYAML pytest splunk-sdk requests
           fi
-          python -m pip list
+          python -m pip install --upgrade pytest PyYAML splunk-sdk requests
 
       - name: Parser checks for detections (connect to Splunk)
         env:
