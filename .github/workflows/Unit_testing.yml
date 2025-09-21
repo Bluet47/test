@@ -43,7 +43,8 @@ jobs:
           python -m pip list
 
       - name: Run unit tests
-        run: python -m pytest -q tests/unit
+        run: python -m pytest -vv -rP tests/unit
+
 
   parser:
     needs: unit
