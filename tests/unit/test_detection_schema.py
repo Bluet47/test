@@ -11,3 +11,6 @@ def test_top_level_fields_present():
         for key in REQUIRED:
             assert key in det, f"{path}: missing required field '{key}'"
         assert isinstance(det["search"], str) and det["search"].strip(), f"{path}: empty search string"
+        
+test_top_level_fields_present()
+
