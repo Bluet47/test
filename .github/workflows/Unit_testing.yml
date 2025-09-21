@@ -12,7 +12,7 @@ on:
       - 'detections/**'
       - 'tests/**'
       - '.github/workflows/**'
-  workflow_dispatch: {}
+  workflow_dispatch: 
 
 jobs:
   unit:
@@ -41,8 +41,6 @@ jobs:
 
   parser:
     needs: unit
-    # only run if Splunk secrets exist
-    if: ${{ secrets.SPLUNK_HOST != '' && secrets.SPLUNK_USERNAME != '' && secrets.SPLUNK_PASSWORD != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
