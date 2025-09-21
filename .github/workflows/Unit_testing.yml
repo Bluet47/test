@@ -1,0 +1,67 @@
+name: Unit testing Detections (unit + parser)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'detections/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'detections/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  workflow_dispatch: {}
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: pytest -q tests/unit
+
+  parser:
+    needs: unit
+    # only runs if secrets are present; otherwise skipped cleanly
+    if: ${{ secrets.SPLUNK_HOST != '' && secrets.SPLUNK_USERNAME != '' && secrets.SPLUNK_PASSWORD != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Parser checks for detections (connect to Splunk)
+        env:
+          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_PORT: ${{ secrets.SPLUNK_PORT }}
+          SPLUNK_USERNAME: ${{ secrets.SPLUNK_USERNAME }}
+          SPLUNK_PASSWORD: ${{ secrets.SPLUNK_PASSWORD }}
+          SPLUNK_VERIFY: 'false'
+          SPLUNK_APP: attack_range_reporting
+          SPLUNK_OWNER: nobody
+        run: |
+          python - <<'PY'
+          import yaml, subprocess, shlex
+          from pathlib import Path
+          failed = False
+          for f in sorted(Path('detections').glob('*.yml')):
+              det = yaml.safe_load(open(f, 'r', encoding='utf-8'))
+              search = det.get('search', '')
+              if not search:
+                  print(f"SKIP empty search: {f}")
+                  continue
+              print(f"==> Parser: {f}")
+              rc = subprocess.call(f"python scripts/test_parser.py {shlex.quote(search)}", shell=True)
+              if rc != 0:
+                  print("Parser FAILED for", f)
+                  failed = True
+          if failed:
+              raise SystemExit(2)
+          print("All parser checks passed.")
+          PY
