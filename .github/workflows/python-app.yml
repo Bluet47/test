@@ -1,0 +1,57 @@
+name: CI - Detections
+
+on:
+  pull_request:
+    paths:
+      - 'detections/**'
+      - 'tests/**'
+  push:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: pytest -q tests/unit
+
+  parser:
+    needs: unit
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SPLUNK_HOST != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Parser checks for detections (connects to Splunk)
+        env:
+          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_PORT: ${{ secrets.SPLUNK_PORT }}
+          SPLUNK_USERNAME: ${{ secrets.SPLUNK_USERNAME }}
+          SPLUNK_PASSWORD: ${{ secrets.SPLUNK_PASSWORD }}
+          SPLUNK_VERIFY: 'false'
+          SPLUNK_APP: attack_range_reporting
+          SPLUNK_OWNER: nobody
+        run: |
+          python - <<'PY'
+import yaml, subprocess, shlex
+from pathlib import Path
+failed=False
+for f in sorted(Path('detections').glob('*.yml')):
+    det = yaml.safe_load(open(f))
+    search = det.get('search','')
+    print("Parser:", f)
+    rc = subprocess.call(f"python scripts/test_parser.py {shlex.quote(search)}", shell=True)
+    if rc!=0:
+        print("Parser failed for",f)
+        failed=True
+if failed:
+    raise SystemExit(2)
+print("Parser checks passed")
+
