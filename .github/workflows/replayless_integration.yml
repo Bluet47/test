@@ -22,7 +22,22 @@ jobs:
 
       - name: Install deps
         run: |
-          python -m pip install -r requirements.txt
+          python -m pip install --upgrade pip setuptools wheel
+          # install from requirements if present (don't fail if the file is missing)
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          # ensure core tools are installed no matter what
+          python -m pip install --upgrade pytest PyYAML splunk-sdk requests
+          # prove they’re importable
+          python - <<'PY'
+          import sys
+          print("Python:", sys.version)
+          import pytest, yaml, splunklib, requests
+          print("Imports OK:", pytest.__version__, yaml.__version__)
+          PY
+          python -m pip list
+         
 
       - name: Connectivity smoke (server/info)
         env:
