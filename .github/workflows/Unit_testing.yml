@@ -26,9 +26,6 @@ jobs:
       - run: pytest -q tests/unit
 
   parser:
-    needs: unit
-    # only runs if secrets are present; otherwise skipped cleanly
-    if: ${{ secrets.SPLUNK_HOST != '' && secrets.SPLUNK_USERNAME != '' && secrets.SPLUNK_PASSWORD != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
