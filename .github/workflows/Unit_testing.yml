@@ -47,7 +47,6 @@ jobs:
 
   parser:
     needs: unit
-    if: ${{ secrets.SPLUNK_HOST != '' && secrets.SPLUNK_USERNAME != '' && secrets.SPLUNK_PASSWORD != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
