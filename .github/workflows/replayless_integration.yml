@@ -12,7 +12,7 @@ jobs:
   smoke-and-perf:
     # Use self-hosted if GitHub runners can't reach your Splunk on 8089.
     # Otherwise switch to ubuntu-latest.
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
