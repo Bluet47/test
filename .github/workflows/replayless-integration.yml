@@ -1,0 +1,59 @@
+name: Manual integration (smoke + perf)
+
+on:
+  workflow_dispatch:
+    inputs:
+      detection_file:
+        description: 'detection YAML path'
+        required: true
+        default: 'detections/create_local_or_domain_user.yml'
+
+jobs:
+  smoke-and-perf:
+    runs-on: self-hosted   # prefer self-hosted runner in same network, or use ubuntu-latest if Splunk is publicly reachable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Parser-only check
+        env:
+          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_PORT: ${{ secrets.SPLUNK_PORT }}
+          SPLUNK_USERNAME: ${{ secrets.SPLUNK_USERNAME }}
+          SPLUNK_PASSWORD: ${{ secrets.SPLUNK_PASSWORD }}
+          SPLUNK_VERIFY: 'false'
+          SPLUNK_APP: attack_range_reporting
+          SPLUNK_OWNER: nobody
+        run: |
+          python - <<'PY'
+import yaml,sys,subprocess,shlex
+dfile="${{ github.event.inputs.detection_file }}"
+det=yaml.safe_load(open(dfile))
+search=det.get('search','')
+print("Parser check")
+rc=subprocess.call(f"python scripts/test_parser.py {shlex.quote(search)}", shell=True)
+if rc!=0:
+    raise SystemExit(rc)
+print("Parser OK")
+PY
+      - name: Run detection (smoke)
+        env:
+          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_PORT: ${{ secrets.SPLUNK_PORT }}
+          SPLUNK_USERNAME: ${{ secrets.SPLUNK_USERNAME }}
+          SPLUNK_PASSWORD: ${{ secrets.SPLUNK_PASSWORD }}
+          SPLUNK_VERIFY: 'false'
+          SPLUNK_APP: attack_range_reporting
+          SPLUNK_OWNER: nobody
+        run: python scripts/run_one_detection.py "${{ github.event.inputs.detection_file }}"
+      - name: Performance test
+        env:
+          SPLUNK_HOST: ${{ secrets.SPLUNK_HOST }}
+          SPLUNK_PORT: ${{ secrets.SPLUNK_PORT }}
+          SPLUNK_USERNAME: ${{ secrets.SPLUNK_USERNAME }}
+          SPLUNK_PASSWORD: ${{ secrets.SPLUNK_PASSWORD }}
+          SPLUNK_VERIFY: 'false'
+          PERF_MAX_RUNTIME_SEC: "15"
+        run: pytest -q -m performance tests/integration/test_performance.py
+
