@@ -1,6 +1,5 @@
-name: Manual • Run one unittest file
-
-on:
+name: unittest
+on: 
   workflow_dispatch:
 
 jobs:
@@ -8,14 +7,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"   # change if you want
+          python-version: "3.12"
 
-      # So `from tools.validators import ...` works:
-      - name: Make repo root importable
-        run: echo "PYTHONPATH=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+      # Optional: sanity check that the test file is really in the repo
+      - run: ls -la tests/unit
 
-      - name: Run the single test file
-        run: python tests/unit/test_validators_edge_cases_unittest.py
+      # EITHER: run *this single file* (no PYTHONPATH tweaks if imports are relative)
+      - name: Run single test file
+        run: python -m unittest tests.unit.test_validators_edge_cases_unittest -v
+
+      # If you prefer file path form instead, add repo root to PYTHONPATH:
+      # - name: Run single test via path
+      #   run: |
+      #     echo "PYTHONPATH=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+      #     python tests/unit/test_validators_edge_cases_unittest.py
